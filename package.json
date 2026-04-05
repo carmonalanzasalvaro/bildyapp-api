@@ -1,0 +1,23 @@
+{
+  "name": "bildyapp-api",
+  "version": "1.0.0",
+  "description": "API REST para la gestión de usuarios de BildyApp",
+  "type": "module",
+  "main": "src/index.js",
+  "scripts": {
+    "dev": "node --watch --env-file=.env src/index.js",
+    "start": "node src/index.js"
+  },
+  "keywords": [
+    "node",
+    "express",
+    "mongodb",
+    "api",
+    "bildyapp"
+  ],
+  "author": "",
+  "license": "ISC",
+  "dependencies": {
+    "express": "^5.1.0"
+  }
+}
