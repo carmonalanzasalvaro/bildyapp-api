@@ -498,3 +498,31 @@ export const inviteUser = async (req, res, next) => {
     return next(error);
   }
 };
+export const changePassword = async (req, res, next) => {
+  try {
+    const { currentPassword, newPassword } = req.body;
+
+    const user = await User.findById(req.user._id).select('+password');
+
+    if (!user || user.deleted) {
+      return next(AppError.notFound('User not found'));
+    }
+
+    const isValidPassword = await bcrypt.compare(currentPassword, user.password);
+
+    if (!isValidPassword) {
+      return next(AppError.unauthorized('Current password is incorrect'));
+    }
+
+    user.password = await bcrypt.hash(newPassword, 10);
+    user.refreshTokens = [];
+    await user.save();
+
+    return res.status(200).json({
+      ok: true,
+      message: 'Password updated successfully'
+    });
+  } catch (error) {
+    return next(error);
+  }
+};

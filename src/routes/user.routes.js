@@ -1,5 +1,6 @@
 import { Router } from 'express';
 import {
+  changePassword,
   deleteMe,
   getMe,
   inviteUser,
@@ -17,6 +18,7 @@ import authorizeRoles from '../middleware/role.middleware.js';
 import upload from '../middleware/upload.js';
 import validate from '../middleware/validate.js';
 import {
+  changePasswordSchema,
   companySchema,
   inviteUserSchema,
   loginSchema,
@@ -33,6 +35,7 @@ router.post('/register', validate(registerSchema), register);
 router.put('/validation', auth, validate(validationCodeSchema), validateEmail);
 router.post('/login', validate(loginSchema), login);
 router.put('/register', auth, validate(updateProfileSchema), updateProfile);
+router.put('/password', auth, validate(changePasswordSchema), changePassword);
 router.patch('/company', auth, validate(companySchema), updateCompany);
 router.patch('/logo', auth, upload.single('logo'), uploadCompanyLogo);
 router.get('/', auth, getMe);
