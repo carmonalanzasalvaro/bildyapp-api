@@ -274,3 +274,25 @@ export const updateCompany = async (req, res, next) => {
     return next(error);
   }
 };
+
+export const getMe = async (req, res, next) => {
+  try {
+    const user = await User.findOne({
+      _id: req.user._id,
+      deleted: false
+    }).populate('company');
+
+    if (!user) {
+      return next(AppError.notFound('User not found'));
+    }
+
+    return res.status(200).json({
+      ok: true,
+      data: {
+        user
+      }
+    });
+  } catch (error) {
+    return next(error);
+  }
+};

@@ -1,5 +1,6 @@
 import { Router } from 'express';
 import {
+  getMe,
   login,
   register,
   updateCompany,
@@ -23,5 +24,6 @@ router.put('/validation', auth, validate(validationCodeSchema), validateEmail);
 router.post('/login', validate(loginSchema), login);
 router.put('/register', auth, validate(updateProfileSchema), updateProfile);
 router.patch('/company', auth, validate(companySchema), updateCompany);
+router.get('/', auth, getMe);
 
 export default router;
