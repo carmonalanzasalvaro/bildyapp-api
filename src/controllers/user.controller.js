@@ -1,7 +1,9 @@
 import bcrypt from 'bcryptjs';
+import jwt from 'jsonwebtoken';
 import User from '../models/User.js';
 import Company from '../models/Company.js';
 import AppError from '../utils/AppError.js';
+import config from '../config/index.js';
 import {
   createAccessToken,
   createRefreshToken,
@@ -291,6 +293,66 @@ export const getMe = async (req, res, next) => {
       data: {
         user
       }
+    });
+  } catch (error) {
+    return next(error);
+  }
+};
+
+export const refreshSession = async (req, res, next) => {
+  try {
+    const { refreshToken } = req.body;
+
+    let payload;
+
+    try {
+      payload = jwt.verify(refreshToken, config.jwtRefreshSecret);
+    } catch (error) {
+      return next(AppError.unauthorized('Invalid or expired refresh token'));
+    }
+
+    if (payload.type !== 'refresh') {
+      return next(AppError.unauthorized('Invalid token type'));
+    }
+
+    const user = await User.findOne({
+      _id: payload.sub,
+      deleted: false,
+      'refreshTokens.token': refreshToken
+    }).select('+refreshTokens.token');
+
+    if (!user) {
+      return next(AppError.unauthorized('Invalid or expired refresh token'));
+    }
+
+    const accessToken = createAccessToken(user);
+
+    return res.status(200).json({
+      ok: true,
+      message: 'Access token refreshed successfully',
+      data: {
+        accessToken
+      }
+    });
+  } catch (error) {
+    return next(error);
+  }
+};
+
+export const logout = async (req, res, next) => {
+  try {
+    const user = await User.findById(req.user._id).select('+refreshTokens.token');
+
+    if (!user) {
+      return next(AppError.notFound('User not found'));
+    }
+
+    user.refreshTokens = [];
+    await user.save();
+
+    return res.status(200).json({
+      ok: true,
+      message: 'Logout successful'
     });
   } catch (error) {
     return next(error);

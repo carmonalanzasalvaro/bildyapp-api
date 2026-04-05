@@ -28,3 +28,15 @@ Content-Type: application/json
 ### Get authenticated user
 GET http://localhost:3000/api/user
 Authorization: Bearer ACCESS_TOKEN
+
+### Refresh session
+POST http://localhost:3000/api/user/refresh
+Content-Type: application/json
+
+{
+  "refreshToken": REFRESH_TOKEN
+}
+
+### Logout
+POST http://localhost:3000/api/user/logout
+Authorization: Bearer ACCESS_TOKEN

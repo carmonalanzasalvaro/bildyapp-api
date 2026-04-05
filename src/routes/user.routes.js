@@ -2,6 +2,8 @@ import { Router } from 'express';
 import {
   getMe,
   login,
+  logout,
+  refreshSession,
   register,
   updateCompany,
   updateProfile,
@@ -12,6 +14,7 @@ import validate from '../middleware/validate.js';
 import {
   companySchema,
   loginSchema,
+  refreshTokenSchema,
   registerSchema,
   updateProfileSchema,
   validationCodeSchema
@@ -25,5 +28,7 @@ router.post('/login', validate(loginSchema), login);
 router.put('/register', auth, validate(updateProfileSchema), updateProfile);
 router.patch('/company', auth, validate(companySchema), updateCompany);
 router.get('/', auth, getMe);
+router.post('/refresh', validate(refreshTokenSchema), refreshSession);
+router.post('/logout', auth, logout);
 
 export default router;
