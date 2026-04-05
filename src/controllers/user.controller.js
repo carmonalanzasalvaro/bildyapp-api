@@ -438,3 +438,63 @@ export const deleteMe = async (req, res, next) => {
     return next(error);
   }
 };
+
+export const inviteUser = async (req, res, next) => {
+  try {
+    const inviter = req.user;
+    const { email, name, lastName } = req.body;
+
+    if (!inviter.company) {
+      return next(AppError.badRequest('Admin must have a company associated'));
+    }
+
+    const existingUser = await User.findOne({
+      email,
+      deleted: false
+    });
+
+    if (existingUser) {
+      return next(AppError.conflict('Email already registered'));
+    }
+
+    const temporaryPassword = `Invite${generateVerificationCode()}!`;
+    const hashedPassword = await bcrypt.hash(temporaryPassword, 10);
+    const verificationCode = generateVerificationCode();
+
+    const invitedUser = await User.create({
+      email,
+      password: hashedPassword,
+      name,
+      lastName,
+      role: 'guest',
+      status: 'pending',
+      verificationCode,
+      verificationAttempts: 3,
+      company: inviter.company
+    });
+
+    notificationService.emit('user:invited', {
+      userId: invitedUser._id.toString(),
+      email: invitedUser.email
+    });
+
+    return res.status(201).json({
+      ok: true,
+      message: 'User invited successfully',
+      data: {
+        user: {
+          id: invitedUser._id,
+          email: invitedUser.email,
+          name: invitedUser.name,
+          lastName: invitedUser.lastName,
+          role: invitedUser.role,
+          status: invitedUser.status,
+          company: invitedUser.company
+        },
+        temporaryPassword
+      }
+    });
+  } catch (error) {
+    return next(error);
+  }
+};

@@ -2,6 +2,7 @@ import { Router } from 'express';
 import {
   deleteMe,
   getMe,
+  inviteUser,
   login,
   logout,
   refreshSession,
@@ -12,10 +13,12 @@ import {
   validateEmail
 } from '../controllers/user.controller.js';
 import auth from '../middleware/auth.middleware.js';
+import authorizeRoles from '../middleware/role.middleware.js';
 import upload from '../middleware/upload.js';
 import validate from '../middleware/validate.js';
 import {
   companySchema,
+  inviteUserSchema,
   loginSchema,
   refreshTokenSchema,
   registerSchema,
@@ -36,5 +39,12 @@ router.get('/', auth, getMe);
 router.post('/refresh', validate(refreshTokenSchema), refreshSession);
 router.post('/logout', auth, logout);
 router.delete('/', auth, validate(softDeleteQuerySchema, 'query'), deleteMe);
+router.post(
+  '/invite',
+  auth,
+  authorizeRoles('admin'),
+  validate(inviteUserSchema),
+  inviteUser
+);
 
 export default router;
