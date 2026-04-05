@@ -1,5 +1,6 @@
 import bcrypt from 'bcryptjs';
 import User from '../models/User.js';
+import Company from '../models/Company.js';
 import AppError from '../utils/AppError.js';
 import {
   createAccessToken,
@@ -169,7 +170,6 @@ export const login = async (req, res, next) => {
 export const updateProfile = async (req, res, next) => {
   try {
     const { name, lastName, nif, address } = req.body;
-
     const user = req.user;
 
     user.name = name;
@@ -190,6 +190,84 @@ export const updateProfile = async (req, res, next) => {
       message: 'User profile updated successfully',
       data: {
         user
+      }
+    });
+  } catch (error) {
+    return next(error);
+  }
+};
+
+export const updateCompany = async (req, res, next) => {
+  try {
+    const user = req.user;
+
+    let companyData;
+
+    if (req.body.isFreelance) {
+      if (!user.nif || !user.name) {
+        return next(
+          AppError.badRequest(
+            'User personal data is required before creating a freelance company'
+          )
+        );
+      }
+
+      companyData = {
+        name: user.fullName || user.name,
+        cif: user.nif,
+        address: {
+          street: user.address?.street ?? '',
+          number: user.address?.number ?? '',
+          postal: user.address?.postal ?? '',
+          city: user.address?.city ?? '',
+          province: user.address?.province ?? ''
+        },
+        isFreelance: true
+      };
+    } else {
+      companyData = {
+        name: req.body.name,
+        cif: req.body.cif,
+        address: req.body.address,
+        isFreelance: false
+      };
+    }
+
+    let company = await Company.findOne({
+      cif: companyData.cif,
+      deleted: false
+    });
+
+    if (!company) {
+      company = await Company.create({
+        owner: user._id,
+        name: companyData.name,
+        cif: companyData.cif,
+        address: companyData.address,
+        isFreelance: companyData.isFreelance
+      });
+
+      user.company = company._id;
+      user.role = 'admin';
+    } else {
+      user.company = company._id;
+      user.role =
+        company.owner?.toString() === user._id.toString() ? 'admin' : 'guest';
+    }
+
+    await user.save();
+
+    return res.status(200).json({
+      ok: true,
+      message: 'Company assigned successfully',
+      data: {
+        user: {
+          id: user._id,
+          email: user.email,
+          role: user.role,
+          company: user.company
+        },
+        company
       }
     });
   } catch (error) {
