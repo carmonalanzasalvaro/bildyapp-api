@@ -1,15 +1,62 @@
-### Login
-POST http://localhost:3000/api/user/login
+@baseUrl = http://localhost:3000
+@accessToken = PEGA_AQUI_EL_ACCESS_TOKEN
+@refreshToken = PEGA_AQUI_EL_REFRESH_TOKEN
+
+@email = adminnuevo@bildyapp.com
+@password = 12345678
+@newPassword = 123456789
+
+### Health check
+GET {{baseUrl}}/health
+
+### Register
+POST {{baseUrl}}/api/user/register
 Content-Type: application/json
 
 {
-  "email": "prueba3@bildyapp.com",
-  "password": "12345678"
+  "email": "{{email}}",
+  "password": "{{password}}"
+}
+
+### Validate email
+PUT {{baseUrl}}/api/user/validation
+Authorization: Bearer {{accessToken}}
+Content-Type: application/json
+
+{
+  "code": "PEGA_AQUI_EL_VERIFICATION_CODE"
+}
+
+### Login
+POST {{baseUrl}}/api/user/login
+Content-Type: application/json
+
+{
+  "email": "{{email}}",
+  "password": "{{password}}"
+}
+
+### Update personal data
+PUT {{baseUrl}}/api/user/register
+Authorization: Bearer {{accessToken}}
+Content-Type: application/json
+
+{
+  "name": "Carmen",
+  "lastName": "Lopez Garcia",
+  "nif": "12345678Z",
+  "address": {
+    "street": "Gran Via",
+    "number": "15",
+    "postal": "28013",
+    "city": "Madrid",
+    "province": "Madrid"
+  }
 }
 
 ### Onboarding - company
-PATCH http://localhost:3000/api/user/company
-Authorization: Bearer ACCESS_TOKEN
+PATCH {{baseUrl}}/api/user/company
+Authorization: Bearer {{accessToken}}
 Content-Type: application/json
 
 {
@@ -25,28 +72,60 @@ Content-Type: application/json
   }
 }
 
-### Get authenticated user
-GET http://localhost:3000/api/user
-Authorization: Bearer ACCESS_TOKEN
-
-### Refresh session
-POST http://localhost:3000/api/user/refresh
+### Onboarding - freelance company
+PATCH {{baseUrl}}/api/user/company
+Authorization: Bearer {{accessToken}}
 Content-Type: application/json
 
 {
-  "refreshToken": REFRESH_TOKEN
+  "isFreelance": true
+}
+
+### Upload company logo
+# Probar con Postman o curl porque muchas veces Thunder Client gratis no permite file upload
+# curl.exe -X PATCH "http://localhost:3000/api/user/logo" -H "Authorization: Bearer TU_ACCESS_TOKEN" -F "logo=@C:\ruta\imagen.png"
+
+### Get authenticated user
+GET {{baseUrl}}/api/user
+Authorization: Bearer {{accessToken}}
+
+### Refresh session
+POST {{baseUrl}}/api/user/refresh
+Content-Type: application/json
+
+{
+  "refreshToken": "{{refreshToken}}"
 }
 
 ### Logout
-POST http://localhost:3000/api/user/logout
-Authorization: Bearer ACCESS_TOKEN
+POST {{baseUrl}}/api/user/logout
+Authorization: Bearer {{accessToken}}
 
-### Change password
-PUT http://localhost:3000/api/user/password
-Authorization: Bearer ACCESS_TOKEN
+### Invite teammate
+POST {{baseUrl}}/api/user/invite
+Authorization: Bearer {{accessToken}}
 Content-Type: application/json
 
 {
-  "currentPassword": "12345678",
-  "newPassword": "123456789"
+  "email": "companero1@bildyapp.com",
+  "name": "Alvaro",
+  "lastName": "Garcia"
 }
+
+### Change password
+PUT {{baseUrl}}/api/user/password
+Authorization: Bearer {{accessToken}}
+Content-Type: application/json
+
+{
+  "currentPassword": "{{password}}",
+  "newPassword": "{{newPassword}}"
+}
+
+### Soft delete user
+DELETE {{baseUrl}}/api/user?soft=true
+Authorization: Bearer {{accessToken}}
+
+### Hard delete user
+DELETE {{baseUrl}}/api/user
+Authorization: Bearer {{accessToken}}
