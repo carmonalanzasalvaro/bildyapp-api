@@ -165,3 +165,34 @@ export const login = async (req, res, next) => {
     return next(error);
   }
 };
+
+export const updateProfile = async (req, res, next) => {
+  try {
+    const { name, lastName, nif, address } = req.body;
+
+    const user = req.user;
+
+    user.name = name;
+    user.lastName = lastName;
+    user.nif = nif;
+    user.address = {
+      street: address?.street ?? '',
+      number: address?.number ?? '',
+      postal: address?.postal ?? '',
+      city: address?.city ?? '',
+      province: address?.province ?? ''
+    };
+
+    await user.save();
+
+    return res.status(200).json({
+      ok: true,
+      message: 'User profile updated successfully',
+      data: {
+        user
+      }
+    });
+  } catch (error) {
+    return next(error);
+  }
+};
