@@ -1,11 +1,11 @@
 import express from 'express';
 import helmet from 'helmet';
 import rateLimit from 'express-rate-limit';
-import mongoSanitize from 'express-mongo-sanitize';
 import userRoutes from './routes/user.routes.js';
 import AppError from './utils/AppError.js';
 import errorHandler from './middleware/error-handler.js';
 import config from './config/index.js';
+import sanitizeRequest from './middleware/sanitize.middleware.js';
 
 const app = express();
 
@@ -22,7 +22,7 @@ const apiLimiter = rateLimit({
 
 app.use(helmet());
 app.use(express.json());
-app.use(mongoSanitize());
+app.use(sanitizeRequest);
 app.use('/uploads', express.static(config.uploadDir));
 app.use('/api', apiLimiter);
 
