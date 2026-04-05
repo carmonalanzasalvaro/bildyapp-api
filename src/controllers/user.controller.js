@@ -66,3 +66,52 @@ export const register = async (req, res, next) => {
     return next(error);
   }
 };
+
+export const validateEmail = async (req, res, next) => {
+  try {
+    const { code } = req.body;
+    const user = req.user;
+
+    if (user.status === 'verified') {
+      return res.status(200).json({
+        ok: true,
+        message: 'Email already verified'
+      });
+    }
+
+    if (user.verificationAttempts <= 0) {
+      return next(AppError.tooManyRequests('Verification attempts exhausted'));
+    }
+
+    if (user.verificationCode !== code) {
+      user.verificationAttempts -= 1;
+      await user.save();
+
+      if (user.verificationAttempts <= 0) {
+        return next(AppError.tooManyRequests('Verification attempts exhausted'));
+      }
+
+      return next(
+        AppError.badRequest('Invalid verification code', {
+          remainingAttempts: user.verificationAttempts
+        })
+      );
+    }
+
+    user.status = 'verified';
+    user.verificationCode = '';
+    await user.save();
+
+    notificationService.emit('user:verified', {
+      userId: user._id.toString(),
+      email: user.email
+    });
+
+    return res.status(200).json({
+      ok: true,
+      message: 'Email verified successfully'
+    });
+  } catch (error) {
+    return next(error);
+  }
+};
