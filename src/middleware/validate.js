@@ -12,7 +12,15 @@ const validate = (schema, property = 'body') => (req, res, next) => {
     return next(AppError.badRequest('Validation error', details));
   }
 
-  req[property] = result.data;
+  if (property === 'body') {
+    req.body = result.data;
+  } else {
+    req.validated = {
+      ...(req.validated ?? {}),
+      [property]: result.data
+    };
+  }
+
   next();
 };
 

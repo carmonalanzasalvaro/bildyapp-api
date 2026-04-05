@@ -394,3 +394,47 @@ export const uploadCompanyLogo = async (req, res, next) => {
     return next(error);
   }
 };
+
+export const deleteMe = async (req, res, next) => {
+  try {
+    const { soft } = req.validated?.query ?? req.query;
+    const user = await User.findById(req.user._id).select('+refreshTokens.token');
+
+    if (!user || user.deleted) {
+      return next(AppError.notFound('User not found'));
+    }
+
+    const userId = user._id.toString();
+    const email = user.email;
+
+    if (soft === 'true') {
+      user.deleted = true;
+      user.refreshTokens = [];
+      await user.save();
+
+      notificationService.emit('user:deleted', {
+        userId,
+        email
+      });
+
+      return res.status(200).json({
+        ok: true,
+        message: 'User soft deleted successfully'
+      });
+    }
+
+    await User.deleteOne({ _id: user._id });
+
+    notificationService.emit('user:deleted', {
+      userId,
+      email
+    });
+
+    return res.status(200).json({
+      ok: true,
+      message: 'User deleted successfully'
+    });
+  } catch (error) {
+    return next(error);
+  }
+};
