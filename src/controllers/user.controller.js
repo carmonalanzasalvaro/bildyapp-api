@@ -115,3 +115,53 @@ export const validateEmail = async (req, res, next) => {
     return next(error);
   }
 };
+
+export const login = async (req, res, next) => {
+  try {
+    const { email, password } = req.body;
+
+    const user = await User.findOne({
+      email,
+      deleted: false
+    }).select('+password +refreshTokens');
+
+    if (!user) {
+      return next(AppError.unauthorized('Invalid credentials'));
+    }
+
+    const isValidPassword = await bcrypt.compare(password, user.password);
+
+    if (!isValidPassword) {
+      return next(AppError.unauthorized('Invalid credentials'));
+    }
+
+    const accessToken = createAccessToken(user);
+    const refreshToken = createRefreshToken(user);
+
+    user.refreshTokens.push({
+      token: refreshToken
+    });
+
+    await user.save();
+
+    return res.status(200).json({
+      ok: true,
+      message: 'Login successful',
+      data: {
+        user: {
+          id: user._id,
+          email: user.email,
+          name: user.name,
+          lastName: user.lastName,
+          role: user.role,
+          status: user.status,
+          company: user.company
+        },
+        accessToken,
+        refreshToken
+      }
+    });
+  } catch (error) {
+    return next(error);
+  }
+};
