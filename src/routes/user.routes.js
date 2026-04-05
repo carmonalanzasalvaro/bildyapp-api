@@ -7,9 +7,11 @@ import {
   register,
   updateCompany,
   updateProfile,
+  uploadCompanyLogo,
   validateEmail
 } from '../controllers/user.controller.js';
 import auth from '../middleware/auth.middleware.js';
+import upload from '../middleware/upload.js';
 import validate from '../middleware/validate.js';
 import {
   companySchema,
@@ -30,5 +32,6 @@ router.patch('/company', auth, validate(companySchema), updateCompany);
 router.get('/', auth, getMe);
 router.post('/refresh', validate(refreshTokenSchema), refreshSession);
 router.post('/logout', auth, logout);
+router.patch('/logo', auth, upload.single('logo'), uploadCompanyLogo);
 
 export default router;

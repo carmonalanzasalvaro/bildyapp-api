@@ -1,5 +1,5 @@
 node_modules
 .env
 uploads/*
-!.gitkeep
+!uploads/.gitkeep
 .DS_Store

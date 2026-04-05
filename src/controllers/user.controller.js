@@ -358,3 +358,39 @@ export const logout = async (req, res, next) => {
     return next(error);
   }
 };
+
+export const uploadCompanyLogo = async (req, res, next) => {
+  try {
+    const user = req.user;
+
+    if (!user.company) {
+      return next(AppError.badRequest('User must have a company associated'));
+    }
+
+    if (!req.file) {
+      return next(AppError.badRequest('Logo file is required'));
+    }
+
+    const company = await Company.findOne({
+      _id: user.company,
+      deleted: false
+    });
+
+    if (!company) {
+      return next(AppError.notFound('Company not found'));
+    }
+
+    company.logo = `/uploads/${req.file.filename}`;
+    await company.save();
+
+    return res.status(200).json({
+      ok: true,
+      message: 'Company logo uploaded successfully',
+      data: {
+        company
+      }
+    });
+  } catch (error) {
+    return next(error);
+  }
+};
