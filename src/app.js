@@ -34,8 +34,13 @@ app.get('/api-docs.json', (_req, res) => {
   res.status(200).json(swaggerSpec);
 });
 
-app.get('/api-docs', (_req, res) => {
-  res.status(200).send(swaggerUiHtml);
+app.use((req, res, next) => {
+  if (req.originalUrl === '/api-docs') {
+    res.redirect(301, '/api-docs/');
+    return;
+  }
+
+  next();
 });
 app.get('/api-docs/', (_req, res) => {
   res.status(200).send(swaggerUiHtml);

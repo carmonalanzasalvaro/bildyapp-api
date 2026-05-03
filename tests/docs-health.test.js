@@ -2,8 +2,15 @@ import request from 'supertest';
 import app from '../src/app.js';
 
 describe('Documentation and health endpoints', () => {
-  test('GET /api-docs returns Swagger UI', async () => {
+  test('GET /api-docs redirects to Swagger UI with trailing slash', async () => {
     const response = await request(app).get('/api-docs');
+
+    expect(response.statusCode).toBe(301);
+    expect(response.headers.location).toBe('/api-docs/');
+  });
+
+  test('GET /api-docs/ returns Swagger UI', async () => {
+    const response = await request(app).get('/api-docs/');
 
     expect(response.statusCode).toBe(200);
     expect(response.headers['content-type']).toMatch(/text\/html/);
