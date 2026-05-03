@@ -1,4 +1,5 @@
 import express from 'express';
+import config from './config/index.js';
 import { getDatabaseStatus } from './config/database.js';
 import deliveryNoteRoutes from './routes/deliverynote.routes.js';
 import { errorHandler, notFound } from './middleware/error-handler.js';
@@ -23,6 +24,12 @@ app.get('/health', (_req, res) => {
     timestamp: new Date().toISOString()
   });
 });
+
+if (config.isTest) {
+  app.get('/api/test/force-500', (_req, _res, next) => {
+    next(new Error('Forced test error'));
+  });
+}
 
 app.use(notFound);
 app.use(errorHandler);

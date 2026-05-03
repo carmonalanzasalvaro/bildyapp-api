@@ -11,6 +11,7 @@ const config = {
   mailtrapPort: Number.parseInt(process.env.MAILTRAP_PORT || '2525', 10),
   mailtrapUser: process.env.MAILTRAP_USER,
   mailtrapPass: process.env.MAILTRAP_PASS,
+  slackWebhookUrl: process.env.SLACK_WEBHOOK_URL || null,
   storage: {
     endpoint: process.env.STORAGE_ENDPOINT || null,
     region: process.env.STORAGE_REGION || 'auto',
