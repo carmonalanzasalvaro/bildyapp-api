@@ -82,6 +82,18 @@ export const deleteDeliveryNoteSchema = z.object({
   })
 });
 
+export const signDeliveryNoteSchema = z.object({
+  params: z.object({
+    id: objectIdField
+  })
+});
+
+export const getDeliveryNotePdfSchema = z.object({
+  params: z.object({
+    id: objectIdField
+  })
+});
+
 export const listDeliveryNoteSchema = z.object({
   query: z.object({
     page: pageField,

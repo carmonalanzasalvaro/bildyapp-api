@@ -11,6 +11,16 @@ const config = {
   mailtrapPort: Number.parseInt(process.env.MAILTRAP_PORT || '2525', 10),
   mailtrapUser: process.env.MAILTRAP_USER,
   mailtrapPass: process.env.MAILTRAP_PASS,
+  storage: {
+    endpoint: process.env.STORAGE_ENDPOINT || null,
+    region: process.env.STORAGE_REGION || 'auto',
+    accessKeyId: process.env.STORAGE_ACCESS_KEY_ID || null,
+    secretAccessKey: process.env.STORAGE_SECRET_ACCESS_KEY || null,
+    bucket: process.env.STORAGE_BUCKET || null,
+    publicBaseUrl: process.env.STORAGE_PUBLIC_BASE_URL || null,
+    signedUrlTtl: Number.parseInt(process.env.STORAGE_SIGNED_URL_TTL || '900', 10),
+    forcePathStyle: process.env.STORAGE_FORCE_PATH_STYLE === 'true'
+  },
   isProduction: (process.env.NODE_ENV || 'development') === 'production',
   isTest: process.env.NODE_ENV === 'test'
 };

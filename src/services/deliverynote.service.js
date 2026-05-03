@@ -1,8 +1,12 @@
 import mongoose from 'mongoose';
+import sharp from 'sharp';
+import { randomUUID } from 'node:crypto';
 import Client from '../models/Client.js';
 import DeliveryNote from '../models/DeliveryNote.js';
 import Project from '../models/Project.js';
 import AppError from '../utils/AppError.js';
+import { pdfService } from './pdf.service.js';
+import { storageService } from './storage.service.js';
 
 const ensureValidObjectId = (value, fieldName = 'id') => {
   if (!mongoose.isValidObjectId(value)) {
@@ -57,6 +61,53 @@ const getDeliveryNoteByIdOrFail = async (companyId, deliveryNoteId, extraFilter 
     throw AppError.notFound('Albarán no encontrado');
   }
 
+  return deliveryNote;
+};
+
+const deliveryNotePopulate = [
+  {
+    path: 'user',
+    select: 'name lastName email role company createdAt updatedAt'
+  },
+  {
+    path: 'client'
+  },
+  {
+    path: 'project'
+  },
+  {
+    path: 'company'
+  }
+];
+
+const buildStorageError = (action) => new AppError(
+  `No se ha podido ${action} en el almacenamiento`,
+  500,
+  'STORAGE_ERROR'
+);
+
+const buildSignatureKey = (companyId, deliveryNoteId) => `delivery-notes/${companyId}/${deliveryNoteId}/signature-${randomUUID()}.webp`;
+
+const buildPdfKey = (companyId, deliveryNoteId) => `delivery-notes/${companyId}/${deliveryNoteId}/delivery-note-${randomUUID()}.pdf`;
+
+const optimizeSignature = async (inputBuffer) => {
+  const resizedImage = sharp(inputBuffer).rotate().resize({
+    width: 800,
+    withoutEnlargement: true,
+    fit: 'inside'
+  });
+
+  const [uploadBuffer, pdfBuffer] = await Promise.all([
+    resizedImage.clone().webp({ quality: 80 }).toBuffer(),
+    resizedImage.png().toBuffer()
+  ]);
+
+  return { uploadBuffer, pdfBuffer };
+};
+
+const getPopulatedDeliveryNoteById = async (companyId, deliveryNoteId, extraFilter = {}) => {
+  const deliveryNote = await getDeliveryNoteByIdOrFail(companyId, deliveryNoteId, extraFilter);
+  await deliveryNote.populate(deliveryNotePopulate);
   return deliveryNote;
 };
 
@@ -153,22 +204,7 @@ export const listDeliveryNotes = async (companyId, query) => {
 };
 
 export const getDeliveryNoteById = async (companyId, deliveryNoteId) => {
-  const deliveryNote = await getDeliveryNoteByIdOrFail(companyId, deliveryNoteId, { deleted: false });
-
-  await deliveryNote.populate([
-    {
-      path: 'user',
-      select: 'name lastName email role company createdAt updatedAt'
-    },
-    {
-      path: 'client'
-    },
-    {
-      path: 'project'
-    }
-  ]);
-
-  return deliveryNote;
+  return getPopulatedDeliveryNoteById(companyId, deliveryNoteId, { deleted: false });
 };
 
 export const deleteDeliveryNote = async (companyId, deliveryNoteId) => {
@@ -183,5 +219,86 @@ export const deleteDeliveryNote = async (companyId, deliveryNoteId) => {
 
   return {
     message: 'Albarán eliminado correctamente'
+  };
+};
+
+export const signDeliveryNote = async (user, deliveryNoteId, file) => {
+  const deliveryNote = await getPopulatedDeliveryNoteById(user.company._id, deliveryNoteId, { deleted: false });
+
+  if (deliveryNote.signed) {
+    throw AppError.conflict('El albarán ya está firmado', 'DELIVERY_NOTE_SIGNED');
+  }
+
+  const signedAt = new Date();
+  const { uploadBuffer, pdfBuffer: pdfSignatureBuffer } = await optimizeSignature(file.buffer);
+
+  let uploadedSignature;
+
+  try {
+    uploadedSignature = await storageService.uploadBuffer({
+      key: buildSignatureKey(user.company._id.toString(), deliveryNote._id.toString()),
+      buffer: uploadBuffer,
+      contentType: 'image/webp',
+      cacheControl: 'public, max-age=31536000, immutable'
+    });
+  } catch {
+    throw buildStorageError('guardar la firma');
+  }
+
+  const pdfPayload = {
+    ...deliveryNote.toObject(),
+    signed: true,
+    signedAt
+  };
+
+  const generatedPdfBuffer = await pdfService.generateDeliveryNotePdfBuffer({
+    deliveryNote: pdfPayload,
+    signatureBuffer: pdfSignatureBuffer
+  });
+
+  let uploadedPdf;
+
+  try {
+    uploadedPdf = await storageService.uploadBuffer({
+      key: buildPdfKey(user.company._id.toString(), deliveryNote._id.toString()),
+      buffer: generatedPdfBuffer,
+      contentType: 'application/pdf',
+      cacheControl: 'public, max-age=31536000, immutable'
+    });
+  } catch {
+    throw buildStorageError('guardar el PDF');
+  }
+
+  deliveryNote.signed = true;
+  deliveryNote.signedAt = signedAt;
+  deliveryNote.signatureUrl = uploadedSignature.url;
+  deliveryNote.pdfUrl = uploadedPdf.url;
+  await deliveryNote.save();
+
+  return deliveryNote;
+};
+
+export const getDeliveryNotePdf = async (companyId, deliveryNoteId) => {
+  const deliveryNote = await getPopulatedDeliveryNoteById(companyId, deliveryNoteId, { deleted: false });
+
+  if (deliveryNote.signed && deliveryNote.pdfUrl) {
+    try {
+      const url = await storageService.getFileUrl(deliveryNote.pdfUrl);
+      return {
+        type: 'url',
+        url
+      };
+    } catch {
+      throw buildStorageError('obtener el PDF');
+    }
+  }
+
+  const buffer = await pdfService.generateDeliveryNotePdfBuffer({
+    deliveryNote: deliveryNote.toObject()
+  });
+
+  return {
+    type: 'buffer',
+    buffer
   };
 };

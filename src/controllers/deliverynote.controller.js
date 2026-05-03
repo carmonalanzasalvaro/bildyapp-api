@@ -2,8 +2,12 @@ import {
   createDeliveryNote,
   deleteDeliveryNote,
   getDeliveryNoteById,
-  listDeliveryNotes
+  getDeliveryNotePdf,
+  listDeliveryNotes,
+  signDeliveryNote
 } from '../services/deliverynote.service.js';
+import AppError from '../utils/AppError.js';
+import { Readable } from 'node:stream';
 
 export const create = async (req, res, next) => {
   try {
@@ -36,6 +40,41 @@ export const remove = async (req, res, next) => {
   try {
     const result = await deleteDeliveryNote(req.user.company._id, req.validated.params.id);
     return res.status(200).json(result);
+  } catch (error) {
+    return next(error);
+  }
+};
+
+export const sign = async (req, res, next) => {
+  try {
+    if (!req.file?.buffer) {
+      throw AppError.badRequest('Debes adjuntar la firma en el campo signature');
+    }
+
+    const deliveryNote = await signDeliveryNote(req.user, req.validated.params.id, req.file);
+    return res.status(200).json({ deliveryNote });
+  } catch (error) {
+    return next(error);
+  }
+};
+
+export const getPdf = async (req, res, next) => {
+  try {
+    const result = await getDeliveryNotePdf(req.user.company._id, req.validated.params.id);
+
+    if (result.type === 'url') {
+      return res.status(200).json({
+        data: {
+          url: result.url
+        }
+      });
+    }
+
+    res.setHeader('Content-Type', 'application/pdf');
+    res.setHeader('Content-Disposition', `inline; filename="delivery-note-${req.validated.params.id}.pdf"`);
+
+    Readable.from(result.buffer).pipe(res);
+    return undefined;
   } catch (error) {
     return next(error);
   }

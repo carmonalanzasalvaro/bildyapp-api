@@ -1,4 +1,5 @@
 import mongoose from 'mongoose';
+import { MulterError } from 'multer';
 import AppError from '../utils/AppError.js';
 
 export const notFound = (req, _res, next) => {
@@ -41,6 +42,14 @@ export const errorHandler = (err, _req, res, _next) => {
     }));
 
     return res.status(400).json(AppError.validation(details).toJSON());
+  }
+
+  if (err instanceof MulterError) {
+    const message = err.code === 'LIMIT_FILE_SIZE'
+      ? 'La firma no puede superar los 5 MB'
+      : 'Error al procesar el archivo adjunto';
+
+    return res.status(400).json(AppError.badRequest(message).toJSON());
   }
 
   const statusCode = err.statusCode || 500;
