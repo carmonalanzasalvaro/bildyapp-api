@@ -16,7 +16,7 @@ const config = {
   env: process.env.NODE_ENV || 'development',
   port: Number.parseInt(process.env.PORT || '3000', 10),
   mongodbUri: process.env.MONGODB_URI || 'mongodb://127.0.0.1:27017/bildyapp',
-  jwtSecret: process.env.JWT_SECRET || 'bildyapp-dev-secret',
+  jwtSecret: process.env.JWT_SECRET || ((process.env.NODE_ENV || 'development') === 'production' ? undefined : 'bildyapp-dev-secret'),
   jwtExpiresIn: process.env.JWT_EXPIRES_IN || '15m',
   mailFrom: process.env.MAIL_FROM || 'no-reply@bildyapp.local',
   mailtrapHost: process.env.MAILTRAP_HOST,
@@ -44,6 +44,10 @@ if (config.isProduction) {
       throw new Error(`Missing required environment variable: ${variable}`);
     }
   }
+}
+
+if (!config.jwtSecret) {
+  throw new Error('Missing required environment variable: JWT_SECRET');
 }
 
 export default config;

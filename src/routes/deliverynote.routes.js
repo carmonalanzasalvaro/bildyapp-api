@@ -3,6 +3,7 @@ import * as deliveryNoteController from '../controllers/deliverynote.controller.
 import { authenticate, requireCompany } from '../middleware/auth.js';
 import { uploadSignature } from '../middleware/upload.js';
 import validate from '../middleware/validate.js';
+import { sanitizeNoSql } from '../middleware/security.js';
 import {
   createDeliveryNoteSchema,
   deleteDeliveryNoteSchema,
@@ -14,6 +15,7 @@ import {
 
 const router = Router();
 
+router.use(sanitizeNoSql);
 router.use(authenticate, requireCompany);
 
 router.post('/', validate(createDeliveryNoteSchema), deliveryNoteController.create);

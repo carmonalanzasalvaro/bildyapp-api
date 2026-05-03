@@ -134,6 +134,30 @@ describe('Auth and onboarding', () => {
     expect(meResponse.body.user.company.cif).toBe('12345678A');
   });
 
+  test('rejects login before email validation', async () => {
+    jest.spyOn(mailService.mailService, 'sendVerificationEmail').mockResolvedValue({ messageId: 'mocked-message' });
+
+    const registerResponse = await request(app)
+      .post('/api/user/register')
+      .send({
+        email: 'pending@example.com',
+        password: 'secreta123'
+      });
+
+    expect(registerResponse.statusCode).toBe(201);
+    expect(registerResponse.body.accessToken).toEqual(expect.any(String));
+
+    const loginResponse = await request(app)
+      .post('/api/user/login')
+      .send({
+        email: 'pending@example.com',
+        password: 'secreta123'
+      });
+
+    expect(loginResponse.statusCode).toBe(401);
+    expect(loginResponse.body.code).toBe('EMAIL_NOT_VERIFIED');
+  });
+
   test('returns 409 when email is duplicated', async () => {
     jest.spyOn(mailService.mailService, 'sendVerificationEmail').mockResolvedValue({ messageId: 'mocked-message' });
 
@@ -161,6 +185,24 @@ describe('Auth and onboarding', () => {
 
     expect(response.statusCode).toBe(400);
     expect(response.body.code).toBe('VALIDATION_ERROR');
+  });
+
+  test('registers the user even if the verification email fails', async () => {
+    jest.spyOn(mailService.mailService, 'sendVerificationEmail').mockRejectedValue(new Error('mailer down'));
+
+    const response = await request(app)
+      .post('/api/user/register')
+      .send({
+        email: 'resilient@example.com',
+        password: 'secreta123'
+      });
+
+    expect(response.statusCode).toBe(201);
+    expect(response.body.user.email).toBe('resilient@example.com');
+
+    const createdUser = await User.findOne({ email: 'resilient@example.com' });
+    expect(createdUser).toBeTruthy();
+    expect(createdUser.status).toBe('pending');
   });
 
   test('rejects missing and invalid token', async () => {

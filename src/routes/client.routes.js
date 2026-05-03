@@ -2,6 +2,7 @@ import { Router } from 'express';
 import * as clientController from '../controllers/client.controller.js';
 import { authenticate, requireCompany } from '../middleware/auth.js';
 import validate from '../middleware/validate.js';
+import { sanitizeNoSql } from '../middleware/security.js';
 import {
   createClientSchema,
   deleteClientSchema,
@@ -13,6 +14,7 @@ import {
 
 const router = Router();
 
+router.use(sanitizeNoSql);
 router.use(authenticate, requireCompany);
 
 router.post('/', validate(createClientSchema), clientController.create);

@@ -4,6 +4,8 @@ import { MongoMemoryServer } from 'mongodb-memory-server';
 let mongoServer;
 
 beforeAll(async () => {
+  process.env.NODE_ENV = 'test';
+  process.env.JWT_SECRET = process.env.JWT_SECRET || 'test-secret';
   mongoServer = await MongoMemoryServer.create();
   process.env.MONGODB_URI = mongoServer.getUri();
 

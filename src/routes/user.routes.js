@@ -2,6 +2,7 @@ import { Router } from 'express';
 import * as userController from '../controllers/user.controller.js';
 import { authenticate } from '../middleware/auth.js';
 import validate from '../middleware/validate.js';
+import { sanitizeNoSql } from '../middleware/security.js';
 import {
   loginSchema,
   onboardCompanySchema,
@@ -11,6 +12,8 @@ import {
 } from '../validators/user.validator.js';
 
 const router = Router();
+
+router.use(sanitizeNoSql);
 
 router.post('/register', validate(registerUserSchema), userController.register);
 router.put('/validation', authenticate, validate(validateEmailSchema), userController.validation);

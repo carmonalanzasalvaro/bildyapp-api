@@ -4,6 +4,7 @@ import User from '../models/User.js';
 import { mailService } from './mail.service.js';
 import { generateAccessToken } from '../utils/jwt.js';
 import { comparePassword, hashPassword } from '../utils/password.js';
+import { loggerService } from './logger.service.js';
 
 const MAX_VERIFICATION_ATTEMPTS = 3;
 
@@ -47,10 +48,21 @@ export const registerUser = async ({ email, password }) => {
     }
   });
 
-  await mailService.sendVerificationEmail({
-    to: user.email,
-    code: verificationCode
-  });
+  try {
+    await mailService.sendVerificationEmail({
+      to: user.email,
+      code: verificationCode
+    });
+  } catch (error) {
+    void loggerService.logServerError({
+      timestamp: new Date().toISOString(),
+      method: 'POST',
+      route: '/api/user/register',
+      status: 502,
+      message: `No se ha podido enviar el correo de verificación: ${error.message}`,
+      stack: error.stack
+    }).catch(() => undefined);
+  }
 
   return buildAuthResponse(user);
 };
@@ -97,6 +109,10 @@ export const loginUser = async ({ email, password }) => {
 
   if (!user || user.deleted) {
     throw AppError.unauthorized('Credenciales inválidas', 'INVALID_CREDENTIALS');
+  }
+
+  if (user.status !== 'verified') {
+    throw AppError.unauthorized('Email no verificado', 'EMAIL_NOT_VERIFIED');
   }
 
   const isValidPassword = await comparePassword(password, user.password);
