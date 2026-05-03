@@ -6,10 +6,18 @@ import {
   restoreProject,
   updateProject
 } from '../services/project.service.js';
+import { emitCompanyEvent } from '../services/realtime.service.js';
 
 export const create = async (req, res, next) => {
   try {
     const project = await createProject(req.user, req.validated.body);
+    emitCompanyEvent(req.user.company._id, 'project:new', {
+      id: project._id.toString(),
+      company: project.company.toString(),
+      createdAt: project.createdAt.toISOString(),
+      name: project.name,
+      projectCode: project.projectCode
+    });
     return res.status(201).json({ project });
   } catch (error) {
     return next(error);

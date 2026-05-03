@@ -8,10 +8,18 @@ import {
 } from '../services/deliverynote.service.js';
 import AppError from '../utils/AppError.js';
 import { Readable } from 'node:stream';
+import { emitCompanyEvent } from '../services/realtime.service.js';
 
 export const create = async (req, res, next) => {
   try {
     const deliveryNote = await createDeliveryNote(req.user, req.validated.body);
+    emitCompanyEvent(req.user.company._id, 'deliverynote:new', {
+      id: deliveryNote._id.toString(),
+      company: deliveryNote.company.toString(),
+      createdAt: deliveryNote.createdAt.toISOString(),
+      format: deliveryNote.format,
+      signed: deliveryNote.signed
+    });
     return res.status(201).json({ deliveryNote });
   } catch (error) {
     return next(error);
@@ -52,6 +60,14 @@ export const sign = async (req, res, next) => {
     }
 
     const deliveryNote = await signDeliveryNote(req.user, req.validated.params.id, req.file);
+    emitCompanyEvent(req.user.company._id, 'deliverynote:signed', {
+      id: deliveryNote._id.toString(),
+      company: deliveryNote.company._id.toString(),
+      createdAt: deliveryNote.createdAt.toISOString(),
+      format: deliveryNote.format,
+      signed: deliveryNote.signed,
+      signedAt: deliveryNote.signedAt.toISOString()
+    });
     return res.status(200).json({ deliveryNote });
   } catch (error) {
     return next(error);

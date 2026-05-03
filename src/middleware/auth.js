@@ -2,30 +2,39 @@ import User from '../models/User.js';
 import AppError from '../utils/AppError.js';
 import { verifyAccessToken } from '../utils/jwt.js';
 
+export const extractAccessToken = (authHeader) => {
+  if (!authHeader || !authHeader.startsWith('Bearer ')) {
+    throw AppError.unauthorized('Token no proporcionado', 'NO_TOKEN');
+  }
+
+  return authHeader.split(' ')[1];
+};
+
+export const resolveAuthenticatedUser = async (token) => {
+  if (!token) {
+    throw AppError.unauthorized('Token no proporcionado', 'NO_TOKEN');
+  }
+
+  let payload;
+
+  try {
+    payload = verifyAccessToken(token);
+  } catch {
+    throw AppError.unauthorized('Token inválido o expirado', 'INVALID_TOKEN');
+  }
+
+  const user = await User.findById(payload.sub).populate('company');
+
+  if (!user || user.deleted) {
+    throw AppError.unauthorized('Usuario no disponible', 'USER_NOT_FOUND');
+  }
+
+  return user;
+};
+
 export const authenticate = async (req, _res, next) => {
   try {
-    const authHeader = req.headers.authorization;
-
-    if (!authHeader || !authHeader.startsWith('Bearer ')) {
-      return next(AppError.unauthorized('Token no proporcionado', 'NO_TOKEN'));
-    }
-
-    const token = authHeader.split(' ')[1];
-    let payload;
-
-    try {
-      payload = verifyAccessToken(token);
-    } catch {
-      return next(AppError.unauthorized('Token inválido o expirado', 'INVALID_TOKEN'));
-    }
-
-    const user = await User.findById(payload.sub).populate('company');
-
-    if (!user || user.deleted) {
-      return next(AppError.unauthorized('Usuario no disponible', 'USER_NOT_FOUND'));
-    }
-
-    req.user = user;
+    req.user = await resolveAuthenticatedUser(extractAccessToken(req.headers.authorization));
     return next();
   } catch (error) {
     return next(error);

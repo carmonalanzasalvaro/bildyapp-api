@@ -6,10 +6,17 @@ import {
   restoreClient,
   updateClient
 } from '../services/client.service.js';
+import { emitCompanyEvent } from '../services/realtime.service.js';
 
 export const create = async (req, res, next) => {
   try {
     const client = await createClient(req.user, req.validated.body);
+    emitCompanyEvent(req.user.company._id, 'client:new', {
+      id: client._id.toString(),
+      company: client.company.toString(),
+      createdAt: client.createdAt.toISOString(),
+      name: client.name
+    });
     return res.status(201).json({ client });
   } catch (error) {
     return next(error);

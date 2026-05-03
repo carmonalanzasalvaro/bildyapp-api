@@ -1,18 +1,23 @@
 import http from 'node:http';
 import app from './app.js';
 import config from './config/index.js';
+import { createSocketServer } from './config/socket.js';
 import { connectDatabase, disconnectDatabase } from './config/database.js';
+import { clearSocketServer } from './services/realtime.service.js';
 
 let server;
+let io;
 
-export const startServer = async () => {
+export const startServer = async (options = {}) => {
   await connectDatabase();
 
   server = http.createServer(app);
+  io = createSocketServer(server, app);
+  const port = options.port ?? config.port;
 
   await new Promise((resolve) => {
-    server.listen(config.port, () => {
-      console.log(`🚀 BildyApp API escuchando en http://localhost:${config.port}`);
+    server.listen(port, () => {
+      console.log(`🚀 BildyApp API escuchando en http://localhost:${port}`);
       resolve();
     });
   });
@@ -21,7 +26,14 @@ export const startServer = async () => {
 };
 
 export const stopServer = async () => {
-  if (server) {
+  if (io) {
+    await io.close();
+    io = undefined;
+    clearSocketServer();
+    app.set('io', undefined);
+  }
+
+  if (server?.listening) {
     await new Promise((resolve, reject) => {
       server.close((error) => {
         if (error) {
@@ -32,6 +44,10 @@ export const stopServer = async () => {
         resolve();
       });
     });
+
+    server = undefined;
+  } else {
+    server = undefined;
   }
 
   await disconnectDatabase();
