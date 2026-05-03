@@ -1,5 +1,6 @@
 import express from 'express';
 import { getDatabaseStatus } from './config/database.js';
+import deliveryNoteRoutes from './routes/deliverynote.routes.js';
 import { errorHandler, notFound } from './middleware/error-handler.js';
 import clientRoutes from './routes/client.routes.js';
 import projectRoutes from './routes/project.routes.js';
@@ -10,6 +11,7 @@ const app = express();
 app.use(express.json());
 
 app.use('/api/client', clientRoutes);
+app.use('/api/deliverynote', deliveryNoteRoutes);
 app.use('/api/project', projectRoutes);
 app.use('/api/user', userRoutes);
 
