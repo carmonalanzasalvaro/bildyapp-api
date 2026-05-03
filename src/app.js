@@ -1,5 +1,7 @@
 import express from 'express';
+import swaggerUi from 'swagger-ui-express';
 import config from './config/index.js';
+import swaggerSpec from './config/swagger.js';
 import { getDatabaseStatus } from './config/database.js';
 import deliveryNoteRoutes from './routes/deliverynote.routes.js';
 import { errorHandler, notFound } from './middleware/error-handler.js';
@@ -8,8 +10,24 @@ import projectRoutes from './routes/project.routes.js';
 import userRoutes from './routes/user.routes.js';
 
 const app = express();
+const swaggerUiOptions = {
+  explorer: true
+};
+const swaggerUiHtml = swaggerUi.generateHTML(swaggerSpec, swaggerUiOptions);
 
 app.use(express.json());
+
+app.get('/api-docs.json', (_req, res) => {
+  res.status(200).json(swaggerSpec);
+});
+
+app.get('/api-docs', (_req, res) => {
+  res.status(200).send(swaggerUiHtml);
+});
+app.get('/api-docs/', (_req, res) => {
+  res.status(200).send(swaggerUiHtml);
+});
+app.use('/api-docs', swaggerUi.serveFiles(swaggerSpec, swaggerUiOptions));
 
 app.use('/api/client', clientRoutes);
 app.use('/api/deliverynote', deliveryNoteRoutes);

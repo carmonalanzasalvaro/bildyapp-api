@@ -1,0 +1,175 @@
+@baseUrl = http://localhost:3000
+@token = replace-with-jwt
+@verificationCode = 123456
+@clientId = 6815d1db0e56f67ba4d9f0f2
+@projectId = 6815d1db0e56f67ba4d9f0f3
+@deliveryNoteId = 6815d1db0e56f67ba4d9f0f4
+
+### Health
+GET {{baseUrl}}/health
+
+### Swagger JSON
+GET {{baseUrl}}/api-docs.json
+
+### Register user
+POST {{baseUrl}}/api/user/register
+Content-Type: application/json
+
+{
+  "email": "ada@example.com",
+  "password": "secreta123"
+}
+
+### Validate email
+PUT {{baseUrl}}/api/user/validation
+Authorization: Bearer {{token}}
+Content-Type: application/json
+
+{
+  "code": "{{verificationCode}}"
+}
+
+### Login
+POST {{baseUrl}}/api/user/login
+Content-Type: application/json
+
+{
+  "email": "ada@example.com",
+  "password": "secreta123"
+}
+
+### Complete user profile
+PUT {{baseUrl}}/api/user/register
+Authorization: Bearer {{token}}
+Content-Type: application/json
+
+{
+  "name": "Ada",
+  "lastName": "Lovelace",
+  "nif": "12345678A",
+  "address": "Calle Principal 1"
+}
+
+### Create or update company
+PATCH {{baseUrl}}/api/user/company
+Authorization: Bearer {{token}}
+Content-Type: application/json
+
+{
+  "name": "Ada Construcciones",
+  "cif": "A12345678",
+  "address": "Calle Empresa 1",
+  "isFreelance": false
+}
+
+### Get current user
+GET {{baseUrl}}/api/user
+Authorization: Bearer {{token}}
+
+### Create client
+POST {{baseUrl}}/api/client
+Authorization: Bearer {{token}}
+Content-Type: application/json
+
+{
+  "name": "ACME Corp",
+  "cif": "B12345678",
+  "email": "contacto@acme.test",
+  "phone": "600123123",
+  "address": {
+    "street": "Gran Vía",
+    "number": "10",
+    "postal": "28013",
+    "city": "Madrid",
+    "province": "Madrid"
+  }
+}
+
+### List clients
+GET {{baseUrl}}/api/client?page=1&limit=10&name=ACME&sort=-createdAt
+Authorization: Bearer {{token}}
+
+### Create project
+POST {{baseUrl}}/api/project
+Authorization: Bearer {{token}}
+Content-Type: application/json
+
+{
+  "client": "{{clientId}}",
+  "name": "Reforma integral",
+  "projectCode": "PRJ-001",
+  "address": {
+    "street": "Alcalá",
+    "number": "25",
+    "postal": "28014",
+    "city": "Madrid",
+    "province": "Madrid"
+  },
+  "email": "obra@acme.test",
+  "notes": "Notas del proyecto",
+  "active": true
+}
+
+### List projects
+GET {{baseUrl}}/api/project?page=1&limit=10&client={{clientId}}&name=Reforma&active=true&sort=-createdAt
+Authorization: Bearer {{token}}
+
+### Create material delivery note
+POST {{baseUrl}}/api/deliverynote
+Authorization: Bearer {{token}}
+Content-Type: application/json
+
+{
+  "client": "{{clientId}}",
+  "project": "{{projectId}}",
+  "format": "material",
+  "description": "Entrega de ladrillos",
+  "workDate": "2025-04-10T00:00:00.000Z",
+  "material": "Ladrillo",
+  "quantity": 120,
+  "unit": "uds"
+}
+
+### Create hours delivery note
+POST {{baseUrl}}/api/deliverynote
+Authorization: Bearer {{token}}
+Content-Type: application/json
+
+{
+  "client": "{{clientId}}",
+  "project": "{{projectId}}",
+  "format": "hours",
+  "description": "Jornada de instalación",
+  "workDate": "2025-05-12T00:00:00.000Z",
+  "hours": 8,
+  "workers": [
+    {
+      "name": "Ana",
+      "hours": 5
+    },
+    {
+      "name": "Luis",
+      "hours": 3
+    }
+  ]
+}
+
+### List delivery notes
+GET {{baseUrl}}/api/deliverynote?page=1&limit=10&client={{clientId}}&project={{projectId}}&format=hours&signed=false&from=2025-05-01&to=2025-05-31&sort=-workDate
+Authorization: Bearer {{token}}
+
+### Sign delivery note
+PATCH {{baseUrl}}/api/deliverynote/{{deliveryNoteId}}/sign
+Authorization: Bearer {{token}}
+Content-Type: multipart/form-data; boundary=BildyAppBoundary
+
+--BildyAppBoundary
+Content-Disposition: form-data; name="signature"; filename="signature.png"
+Content-Type: image/png
+
+< ./tests/fixtures/signature.png
+--BildyAppBoundary--
+
+### Get delivery note PDF
+GET {{baseUrl}}/api/deliverynote/pdf/{{deliveryNoteId}}
+Authorization: Bearer {{token}}

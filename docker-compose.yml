@@ -1,0 +1,29 @@
+services:
+  api:
+    build:
+      context: .
+    container_name: bildyapp-api
+    depends_on:
+      mongo:
+        condition: service_started
+    environment:
+      PORT: 3000
+      NODE_ENV: development
+      MONGODB_URI: mongodb://mongo:27017/bildyapp
+      JWT_SECRET: change-me
+      JWT_EXPIRES_IN: 15m
+    ports:
+      - '3000:3000'
+    restart: unless-stopped
+
+  mongo:
+    image: mongo:7
+    container_name: bildyapp-mongo
+    ports:
+      - '27017:27017'
+    restart: unless-stopped
+    volumes:
+      - mongo-data:/data/db
+
+volumes:
+  mongo-data:
