@@ -18,6 +18,22 @@ export default class AppError extends Error {
     return new AppError(message, 404, 'NOT_FOUND');
   }
 
+  static unauthorized(message = 'No autenticado', code = 'UNAUTHORIZED') {
+    return new AppError(message, 401, code);
+  }
+
+  static forbidden(message = 'No autorizado', code = 'FORBIDDEN') {
+    return new AppError(message, 403, code);
+  }
+
+  static conflict(message = 'Conflicto de datos', code = 'CONFLICT') {
+    return new AppError(message, 409, code);
+  }
+
+  static tooManyRequests(message = 'Demasiadas solicitudes', code = 'TOO_MANY_REQUESTS') {
+    return new AppError(message, 429, code);
+  }
+
   static validation(details = [], message = 'Error de validación') {
     return new AppError(message, 400, 'VALIDATION_ERROR', details);
   }

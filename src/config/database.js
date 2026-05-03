@@ -9,6 +9,16 @@ const connectionStates = {
 };
 
 export const connectDatabase = async (uri = config.mongodbUri) => {
+  if (mongoose.connection.readyState !== 0) {
+    const currentUri = mongoose.connection.client?.s?.url;
+
+    if (currentUri === uri) {
+      return mongoose.connection;
+    }
+
+    await mongoose.disconnect();
+  }
+
   await mongoose.connect(uri);
   return mongoose.connection;
 };
