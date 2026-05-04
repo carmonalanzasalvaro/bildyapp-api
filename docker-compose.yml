@@ -3,6 +3,8 @@ services:
     build:
       context: .
     container_name: bildyapp-api
+    env_file:
+      - .env
     depends_on:
       mongo:
         condition: service_started
