@@ -229,6 +229,82 @@ describe('Project API', () => {
     expect(deletedProject).toBeNull();
   });
 
+  test('keeps project update idempotent when the same representation is sent twice', async () => {
+    const { token } = await createAuthenticatedCompanyUser({
+      email: 'project-owner-idempotency@example.com',
+      companyName: 'Project Company Idempotency',
+      companyCif: 'A22345688',
+      companyAddress: 'Calle Empresa Idempotency'
+    });
+
+    const client = await createClient(token, {
+      cif: 'B12345004',
+      email: 'idempotent-client@test.test'
+    });
+
+    const createResponse = await request(app)
+      .post('/api/project')
+      .set('Authorization', `Bearer ${token}`)
+      .send(buildProjectPayload(client._id, {
+        projectCode: 'PRJ-IDEMPOTENT',
+        email: 'idempotent-project@test.test'
+      }));
+
+    expect(createResponse.statusCode).toBe(201);
+
+    const projectId = createResponse.body.project._id;
+    const updatePayload = buildProjectPayload(client._id, {
+      name: 'Reforma idempotente',
+      projectCode: 'PRJ-IDEMPOTENT-UPDATED',
+      email: 'idempotent-updated@test.test',
+      notes: 'Misma representación enviada dos veces',
+      active: false
+    });
+
+    const firstUpdateResponse = await request(app)
+      .put(`/api/project/${projectId}`)
+      .set('Authorization', `Bearer ${token}`)
+      .send(updatePayload);
+
+    expect(firstUpdateResponse.statusCode).toBe(200);
+
+    const secondUpdateResponse = await request(app)
+      .put(`/api/project/${projectId}`)
+      .set('Authorization', `Bearer ${token}`)
+      .send(updatePayload);
+
+    expect(secondUpdateResponse.statusCode).toBe(200);
+
+    const stableProjectState = (project) => ({
+      id: project._id,
+      client: project.client,
+      name: project.name,
+      projectCode: project.projectCode,
+      email: project.email,
+      notes: project.notes,
+      active: project.active,
+      deleted: project.deleted
+    });
+
+    expect(stableProjectState(secondUpdateResponse.body.project)).toEqual(stableProjectState(firstUpdateResponse.body.project));
+
+    const getResponse = await request(app)
+      .get(`/api/project/${projectId}`)
+      .set('Authorization', `Bearer ${token}`);
+
+    expect(getResponse.statusCode).toBe(200);
+    expect(stableProjectState(getResponse.body.project)).toEqual({
+      id: projectId,
+      client: client._id,
+      name: 'Reforma idempotente',
+      projectCode: 'PRJ-IDEMPOTENT-UPDATED',
+      email: 'idempotent-updated@test.test',
+      notes: 'Misma representación enviada dos veces',
+      active: false,
+      deleted: false
+    });
+  });
+
   test('returns pagination metadata with client name active filters and sorting', async () => {
     const { token } = await createAuthenticatedCompanyUser({
       email: 'project-owner2@example.com',
